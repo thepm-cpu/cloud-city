@@ -1,0 +1,48 @@
+---
+- name: Update apt cache
+  apt:
+    update_cache: yes
+
+- name: Install required packages
+  apt:
+    name:
+      - python3
+      - python3-pip
+      - python3-venv
+      - git
+    state: present
+
+- name: Clone app repo
+  git:
+    repo: "{{ app_repo_url }}"  # Passed from workflow (your repo)
+    dest: /opt/app
+    version: main
+
+- name: Create virtualenv
+  command: python3 -m venv /opt/app/venv
+  args:
+    creates: /opt/app/venv
+
+- name: Install app dependencies
+  pip:
+    requirements: /opt/app/app/requirements.txt
+    virtualenv: /opt/app/venv
+
+- name: Copy Gunicorn config
+  copy:
+    src: /opt/app/app/gunicorn.conf.py
+    dest: /opt/app/gunicorn.conf.py
+    remote_src: true
+
+- name: Create systemd service for app
+  template:
+    src: app.service.j2
+    dest: /etc/systemd/system/app.service
+  notify: Restart app
+
+- name: Start and enable app service
+  systemd:
+    name: app
+    state: started
+    enabled: true
+    daemon_reload: true

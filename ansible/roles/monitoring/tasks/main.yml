@@ -1,0 +1,71 @@
+---
+- name: Install unzip (for extracting binaries)
+  apt:
+    name: unzip
+    state: present
+
+- name: Download and install Node Exporter
+  unarchive:
+    src: https://github.com/prometheus/node_exporter/releases/download/v1.8.2/node_exporter-1.8.2.linux-amd64.tar.gz
+    dest: /opt
+    remote_src: yes
+  args:
+    creates: /opt/node_exporter-1.8.2.linux-amd64/node_exporter
+
+- name: Move Node Exporter binary
+  copy:
+    src: /opt/node_exporter-1.8.2.linux-amd64/node_exporter
+    dest: /usr/local/bin/node_exporter
+    mode: '0755'
+    remote_src: true
+
+- name: Create systemd service for Node Exporter
+  template:
+    src: node_exporter.service.j2
+    dest: /etc/systemd/system/node_exporter.service
+  notify: Restart node_exporter
+
+- name: Start and enable Node Exporter
+  systemd:
+    name: node_exporter
+    state: started
+    enabled: true
+    daemon_reload: true
+
+- name: Download and install Prometheus
+  unarchive:
+    src: https://github.com/prometheus/prometheus/releases/download/v3.0.0-beta.0/prometheus-3.0.0-beta.0.linux-amd64.tar.gz
+    dest: /opt
+    remote_src: yes
+  args:
+    creates: /opt/prometheus-3.0.0-beta.0.linux-amd64/prometheus
+
+- name: Move Prometheus binary
+  copy:
+    src: /opt/prometheus-3.0.0-beta.0.linux-amd64/prometheus
+    dest: /usr/local/bin/prometheus
+    mode: '0755'
+    remote_src: true
+
+- name: Create Prometheus config directory
+  file:
+    path: /etc/prometheus
+    state: directory
+
+- name: Copy Prometheus config
+  template:
+    src: prometheus.yml.j2
+    dest: /etc/prometheus/prometheus.yml
+
+- name: Create systemd service for Prometheus
+  template:
+    src: prometheus.service.j2
+    dest: /etc/systemd/system/prometheus.service
+  notify: Restart prometheus
+
+- name: Start and enable Prometheus
+  systemd:
+    name: prometheus
+    state: started
+    enabled: true
+    daemon_reload: true
