@@ -1,0 +1,66 @@
+name: Deploy Cloud City
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: eu-north-1
+      TF_BACKEND_BUCKET: cloud-city-tf-state
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.5  # Latest stable as of now; update if needed
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Init
+        working-directory: terraform
+        run: terraform init -backend-config="bucket=${{ env.TF_BACKEND_BUCKET }}" -backend-config="key=cloud-city.tfstate" -backend-config="region=${{ env.AWS_REGION }}"
+
+      - name: Terraform Plan
+        working-directory: terraform
+        run: terraform plan -out=plan.tfout
+
+      - name: Terraform Apply
+        working-directory: terraform
+        run: terraform apply -auto-approve plan.tfout
+
+      - name: Get EC2 Public IP
+        id: get-ip
+        working-directory: terraform
+        run: |
+          echo "EC2_IP=$(terraform output -raw ec2_public_ip)" >> $GITHUB_OUTPUT
+
+      - name: Setup SSH Key
+        run: |
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > private_key.pem
+          chmod 600 private_key.pem
+
+      - name: Install Ansible
+        run: |
+          sudo apt update
+          sudo apt install -y ansible
+
+      - name: Run Ansible Playbook
+        working-directory: ansible
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: False  # Skip host key check for automation
+        run: |
+          echo "[ec2]" > inventory.ini
+          echo "${{ steps.get-ip.outputs.EC2_IP }} ansible_user=ubuntu ansible_ssh_private_key_file=../private_key.pem" >> inventory.ini
+          ansible-playbook -i inventory.ini playbook.yml
