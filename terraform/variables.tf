@@ -27,3 +27,9 @@ variable "key_name" {
   type        = string
   default     = "devops-key"
 }
+
+variable "ssh_allowed_ip" {
+  description = "my laptop's public IP for SSH access (CIDR format)"
+  type        = string
+  default     = "102.88.111.131/32"  # Replace <your-ip> with your actual IP, e.g., "203.0.113.42/32"
+}

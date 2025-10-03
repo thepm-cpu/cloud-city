@@ -46,7 +46,7 @@ resource "aws_security_group" "app_sg" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [var.ssh_allowed_ip]
   }
 
   ingress {
@@ -106,4 +106,55 @@ resource "aws_instance" "app" {
   tags = {
     Name = "cloud-city-app"
   }
+}
+
+# S3 Bucket for Ansible SSM Plugin (file transfers)
+resource "aws_s3_bucket" "ansible_ssm" {
+  bucket = "cloud-city-ansible-ssm-${random_string.bucket_suffix.id}"  # Unique name
+  tags = {
+    Name = "cloud-city-ansible-ssm"
+  }
+}
+
+resource "random_string" "bucket_suffix" {
+  length  = 8
+  special = false
+  upper   = false
+}
+
+# IAM Role for EC2 SSM Access
+data "aws_iam_policy" "ssm_managed" {
+  arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_role" "ec2_ssm_role" {
+  name = "cloud-city-ec2-ssm-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ssm_attach" {
+  role       = aws_iam_role.ec2_ssm_role.name
+  policy_arn = data.aws_iam_policy.ssm_managed.arn
+}
+
+resource "aws_iam_instance_profile" "ec2_ssm_profile" {
+  name = "cloud-city-ec2-ssm-profile"
+  role = aws_iam_role.ec2_ssm_role.name
+}
+
+# Update EC2 Instance to Use Profile
+resource "aws_instance" "app" {
+  # ... existing config ...
+  iam_instance_profile = aws_iam_instance_profile.ec2_ssm_profile.name
 }

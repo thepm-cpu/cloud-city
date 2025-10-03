@@ -40,27 +40,24 @@ jobs:
         working-directory: terraform
         run: terraform apply -auto-approve plan.tfout
 
-      - name: Get EC2 Public IP
-        id: get-ip
+      - name: Get EC2 Outputs
+        id: get-outputs
         working-directory: terraform
         run: |
-          echo "EC2_IP=$(terraform output -raw ec2_public_ip)" >> $GITHUB_OUTPUT
+          echo "EC2_INSTANCE_ID=$(terraform output -raw ec2_instance_id)" >> $GITHUB_OUTPUT
+          echo "ANSIBLE_S3_BUCKET=$(terraform output -raw ansible_s3_bucket)" >> $GITHUB_OUTPUT
 
-      - name: Setup SSH Key
-        run: |
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > private_key.pem
-          chmod 600 private_key.pem
-
-      - name: Install Ansible
+      - name: Install Ansible and Collection
         run: |
           sudo apt update
           sudo apt install -y ansible
+          ansible-galaxy collection install amazon.aws
 
       - name: Run Ansible Playbook
         working-directory: ansible
         env:
-          ANSIBLE_HOST_KEY_CHECKING: False  # Skip host key check for automation
+          ANSIBLE_HOST_KEY_CHECKING: False
         run: |
           echo "[ec2]" > inventory.ini
-          echo "${{ steps.get-ip.outputs.EC2_IP }} ansible_user=ubuntu ansible_ssh_private_key_file=../private_key.pem" >> inventory.ini
+          echo "${{ steps.get-outputs.outputs.EC2_INSTANCE_ID }} ansible_connection=amazon.aws.aws_ssm ansible_aws_ssm_bucket=${{ steps.get-outputs.outputs.ANSIBLE_S3_BUCKET }} ansible_aws_ssm_region=eu-north-1 ansible_user=ubuntu" >> inventory.ini
           ansible-playbook -i inventory.ini playbook.yml
