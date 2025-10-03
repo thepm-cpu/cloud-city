@@ -3,6 +3,8 @@ This repo automates provisioning an AWS EC2 instance with Terraform, configures 
 Technologies: AWS, Terraform, Ansible, Prometheus, GitHub Actions.
 
 ## Demo / GIF
+![demo-gif](./screenshots/demo.gif)
+
 
 ## Why I built this
 To practice end-to-end DevOps: from infra provisioning to app deployment and monitoring in a cloud environment.
@@ -22,7 +24,6 @@ VPC (eu-north-1)
   ├── Security Group (inbound: 22, 5000, 9090, 9100)
   └── Route Table (to IGW)
 
- See docs/arch.png for detailed diagram—data flow: Git push → Workflow (Terraform apply → Ansible configure) → App live with metrics scraped by Prometheus.
 
 ## Quick start (5 steps)
 Prereqs: AWS CLI configured, Terraform v1.9+, Ansible, Git, and GitHub repo secrets (AWS keys, SSH private key).
@@ -36,6 +37,18 @@ Terraform: VPC, subnet, EC2, security groups with community modules.
 Ansible: App deployment (Flask with Gunicorn), Prometheus + Node Exporter setup.
 GitHub Actions: Automated deploy/destroy workflows.
 Monitoring: Prometheus scrapes app and system metrics.
+
+
+![vpc.png](./screenshots/vpc.png)
+
+
+![instance.png](./screenshots/instance.png)
+
+![homepage.png](./screenshots/homepage.png)
+
+![node-exporter.png](./screenshots/node-exporter.png)
+
+![prometheus.png](./screenshots/prometheus.png)
 
 ## What I learned
 Dynamic backend config for Terraform in CI/CD to avoid state issues.
@@ -51,7 +64,9 @@ app/: Flask code (app.py, requirements.txt).
 screenshots/: Images for docs.
 
 ## CI / Status
-Failed to load imageView link
+[![Deploy Cloud City](https://github.com/thepm-cpu/cloud-city/actions/workflows/deploy.yml/badge.svg)](https://github.com/thepm-cpu/cloud-city/actions/workflows/deploy.yml)
+
+![workflow.png](./screenshots/workflow.png)
 
 ## Cost & safety
 Warning: Runs a t3.micro EC2 (~$0.01/hr)—always destroy after use. No secrets committed; use GitHub secrets for creds.
@@ -60,7 +75,9 @@ Warning: Runs a t3.micro EC2 (~$0.01/hr)—always destroy after use. No secrets 
 MIT
 
 ## Contact / Links
-LinkedIn: <your-link> • Email: <your-email> • Portfolio: <portfolio-repo>
+LinkedIn: https://www.linkedin.com/in/ossai-chibuzor-0859451ba?
+Email: ossaichibuzoralex@gmail.com
+ Portfolio: 
 
 ## Exact folder structures
 cloud-city/
@@ -100,4 +117,3 @@ cloud-city/
 │  └─ arch.png
 ├─ .gitignore
 └─ .terraform.lock.hcl
-Notes: Follows HashiCorp's modular structure with examples in terraform/; Ansible roles for reusability. (HashiCorp Developer)
