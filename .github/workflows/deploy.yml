@@ -51,6 +51,8 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y ansible
+          source /opt/pipx/venvs/ansible-core/bin/activate  # Activate Ansible's venv
+          pip install boto3 botocore  # Install required libs
           ansible-galaxy collection install amazon.aws
 
       - name: Run Ansible Playbook
