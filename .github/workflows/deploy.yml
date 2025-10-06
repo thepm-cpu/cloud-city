@@ -48,7 +48,10 @@ jobs:
           echo "EC2_INSTANCE_ID=$(terraform output -raw ec2_instance_id)" >> $GITHUB_OUTPUT
           echo "ANSIBLE_S3_BUCKET=$(terraform output -raw ansible_s3_bucket)" >> $GITHUB_OUTPUT
           echo "Bucket: ${{ steps.get-outputs.outputs.ANSIBLE_S3_BUCKET }}"
-
+        
+      - name: Wait for EC2 and SSM to be ready
+        run: sleep 120  # 2 minutes to allow SSM agent registration
+          
       - name: Install required Python libs for Ansible AWS collection
         run: |
           pipx runpip ansible-core install boto3 botocore
