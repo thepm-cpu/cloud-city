@@ -102,6 +102,7 @@ resource "aws_instance" "app" {
   subnet_id     = module.vpc.public_subnets[0]
   vpc_security_group_ids = [aws_security_group.app_sg.id]
   associate_public_ip_address = true  # Public IP for access
+   iam_instance_profile = aws_iam_instance_profile.ec2_ssm_profile.name
 
   tags = {
     Name = "cloud-city-app"
@@ -151,10 +152,4 @@ resource "aws_iam_role_policy_attachment" "ssm_attach" {
 resource "aws_iam_instance_profile" "ec2_ssm_profile" {
   name = "cloud-city-ec2-ssm-profile"
   role = aws_iam_role.ec2_ssm_role.name
-}
-
-# Update EC2 Instance to Use Profile
-resource "aws_instance" "app" {
-  # ... existing config ...
-  iam_instance_profile = aws_iam_instance_profile.ec2_ssm_profile.name
 }
