@@ -58,5 +58,5 @@ jobs:
           ANSIBLE_HOST_KEY_CHECKING: False
         run: |
           echo "[ec2]" > inventory.ini
-          echo "${{ steps.get-outputs.outputs.EC2_INSTANCE_ID }} ansible_connection=amazon.aws.aws_ssm ansible_aws_ssm_bucket=${{ steps.get-outputs.outputs.ANSIBLE_S3_BUCKET }} ansible_aws_ssm_region=eu-north-1 ansible_user=ubuntu" >> inventory.ini
-          ansible-playbook -i inventory.ini playbook.yml
+          echo "${{ steps.get-outputs.outputs.EC2_INSTANCE_ID }} ansible_connection=amazon.aws.aws_ssm ansible_aws_ssm_region=eu-north-1 ansible_user=ubuntu" >> inventory.ini  # Remove bucket from here to avoid conflicts
+          ansible-playbook -i inventory.ini -e "ansible_aws_ssm_bucket=${{ steps.get-outputs.outputs.ANSIBLE_S3_BUCKET }}" playbook.yml
