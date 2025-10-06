@@ -10,8 +10,7 @@
 
   vars:
     app_repo_url: "https://github.com/thepm-cpu/cloud-city.git"  # Replace with your repo URL 
-
----
+    
 - name: Configure Cloud City Instance
   hosts: ec2
   become: true
