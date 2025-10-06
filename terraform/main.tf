@@ -102,8 +102,15 @@ resource "aws_instance" "app" {
   subnet_id     = module.vpc.public_subnets[0]
   vpc_security_group_ids = [aws_security_group.app_sg.id]
   associate_public_ip_address = true  # Public IP for access
-   iam_instance_profile = aws_iam_instance_profile.ec2_ssm_profile.name
-
+  iam_instance_profile = aws_iam_instance_profile.ec2_ssm_profile.name
+  user_data = <<-EOF
+  #!/bin/bash
+  wget https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/debian_amd64/amazon-ssm-agent.deb
+  sudo dpkg -i amazon-ssm-agent.deb
+  sudo systemctl enable amazon-ssm-agent
+  sudo systemctl start amazon-ssm-agent
+  EOF
+   
   tags = {
     Name = "cloud-city-app"
   }
