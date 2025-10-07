@@ -5,11 +5,7 @@
   gather_facts: true
   vars:
     app_repo_url: "https://github.com/thepm-cpu/cloud-city.git"  # Replace with your repo URL 
-    ansible_connection: amazon.aws.aws_ssm
-    ansible_aws_ssm_bucket: "{{ ansible_s3_bucket }}"  # From Terraform output
-    ansible_aws_ssm_region: "eu-north-1"
-    ansible_aws_ssm_timeout: 60   
-
+   
   roles:
     - app
     - monitoring
