@@ -47,7 +47,7 @@ jobs:
           terraform output
           echo "EC2_INSTANCE_ID=$(terraform output -raw ec2_instance_id)" >> $GITHUB_OUTPUT
           echo "ANSIBLE_S3_BUCKET=$(terraform output -raw ansible_s3_bucket)" >> $GITHUB_OUTPUT
-          echo "Bucket: ${{ steps.get-outputs.outputs.ANSIBLE_S3_BUCKET }}"
+          echo "Bucket: ${{ steps.get-outputs.outputs.ansible_s3_bucket }}"
 
       - name: Wait for EC2 and SSM to be ready
         run: sleep 120
