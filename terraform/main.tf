@@ -110,7 +110,7 @@ resource "aws_instance" "app" {
   EOF
    
   tags = {
-    Name = "cloud-city-app" #hG
+    Name = "cloud-city-app" #hGI
   }
 }
 
