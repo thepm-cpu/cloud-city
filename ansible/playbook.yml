@@ -1,11 +1,16 @@
 ---
 - name: Configure Cloud City Instance
   hosts: ec2
-  become: true  # Run as sudo
+  become: true
   gather_facts: true
   vars:
-    app_repo_url: "https://github.com/thepm-cpu/cloud-city.git"  # Replace with your repo URL 
-   
+    app_repo_url: "https://github.com/thepm-cpu/cloud-city.git"
+  
+  tasks:
+    - name: Wait for SSM connection
+      wait_for_connection:
+        timeout: 300
+  
   roles:
     - app
     - monitoring

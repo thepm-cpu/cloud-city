@@ -47,10 +47,10 @@ jobs:
           terraform output
           echo "EC2_INSTANCE_ID=$(terraform output -raw ec2_instance_id)" >> $GITHUB_OUTPUT
           echo "ANSIBLE_S3_BUCKET=$(terraform output -raw ansible_s3_bucket)" >> $GITHUB_OUTPUT
-          echo "Bucket: ${{ steps.get-outputs.outputs.ansible_s3_bucket }}"
+          echo "Bucket: ${{ steps.get-outputs.outputs.ANSIBLE_S3_BUCKET }}"
 
       - name: Wait for EC2 and SSM to be ready
-        run: sleep 120
+        run: sleep 300
 
       - name: Install required Python libs for Ansible AWS collection
         run: |
@@ -63,5 +63,5 @@ jobs:
           ANSIBLE_HOST_KEY_CHECKING: False
         run: |
           echo "[ec2]" > inventory.ini
-          echo "${{ steps.get-outputs.outputs.ec2_instance_id }} ansible_connection=amazon.aws.aws_ssm ansible_aws_ssm_bucket=${{ steps.get-outputs.outputs.ansible_s3_bucket }} ansible_aws_ssm_region=eu-north-1 ansible_user=ubuntu ansible_aws_ssm_retries=30 ansible_aws_ssm_backoff=10 ansible_aws_ssm_timeout=60" >> inventory.ini
+          echo "${{ steps.get-outputs.outputs.EC2_INSTANCE_ID }} ansible_connection=amazon.aws.aws_ssm ansible_aws_ssm_bucket=${{ steps.get-outputs.outputs.ANSIBLE_S3_BUCKET }} ansible_aws_ssm_region=eu-north-1 ansible_user=ubuntu ansible_aws_ssm_retries=30 ansible_aws_ssm_backoff=10 ansible_aws_ssm_timeout=60" >> inventory.ini
           ansible-playbook -i inventory.ini -vvvv playbook.yml
