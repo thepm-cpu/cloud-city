@@ -14,6 +14,15 @@ data "aws_ami" "ubuntu" {
   }
 }
 
+# Data source for GitHub Actions IP ranges (for secure SSH access)
+data "http" "github_meta" {
+  url = "https://api.github.com/meta"
+}
+
+locals {
+  github_actions_ips = jsondecode(data.http.github_meta.response_body).actions
+}
+
 # VPC Module (community) - Handles VPC, subnet, IGW, route table
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
@@ -42,11 +51,11 @@ resource "aws_security_group" "app_sg" {
 
   # Inbound rules
   ingress {
-    description = "SSH from anywhere (demo only; use bastion in prod)"
+    description = "SSH from GitHub Actions and your IP"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = [var.ssh_allowed_ip]
+    cidr_blocks = concat([var.ssh_allowed_ip], local.github_actions_ips)
   }
 
   ingress {
@@ -102,59 +111,8 @@ resource "aws_instance" "app" {
   subnet_id     = module.vpc.public_subnets[0]
   vpc_security_group_ids = [aws_security_group.app_sg.id]
   associate_public_ip_address = true  # Public IP for access
-  iam_instance_profile = aws_iam_instance_profile.ec2_ssm_profile.name
-  user_data = <<-EOF
-  #!/bin/bash
-  sudo systemctl enable amazon-ssm-agent
-  sudo systemctl start amazon-ssm-agent
-  EOF
    
   tags = {
-    Name = "cloud-city-app" #hGI
+    Name = "cloud-city-app" 
   }
-}
-
-# S3 Bucket for Ansible SSM Plugin (file transfers)
-resource "aws_s3_bucket" "ansible_ssm" {
-  bucket = "cloud-city-ansible-ssm-${random_string.bucket_suffix.id}"  # Unique name
-  tags = {
-    Name = "cloud-city-ansible-ssm"
-  }
-}
-
-resource "random_string" "bucket_suffix" {
-  length  = 8
-  special = false
-  upper   = false
-}
-
-# IAM Role for EC2 SSM Access
-data "aws_iam_policy" "ssm_managed" {
-  arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
-}
-
-resource "aws_iam_role" "ec2_ssm_role" {
-  name = "cloud-city-ec2-ssm-role"
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "ec2.amazonaws.com"
-        }
-      }
-    ]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "ssm_attach" {
-  role       = aws_iam_role.ec2_ssm_role.name
-  policy_arn = data.aws_iam_policy.ssm_managed.arn
-}
-
-resource "aws_iam_instance_profile" "ec2_ssm_profile" {
-  name = "cloud-city-ec2-ssm-profile"
-  role = aws_iam_role.ec2_ssm_role.name
 }

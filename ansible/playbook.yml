@@ -5,12 +5,49 @@
   gather_facts: true
   vars:
     app_repo_url: "https://github.com/thepm-cpu/cloud-city.git"
+    ssh_public_key: ""  
   
   tasks:
-    - name: Wait for SSM connection
+    - name: Wait for connection
       wait_for_connection:
         timeout: 300
-  
+
+    - name: Create deploy user
+      user:
+        name: deployuser
+        state: present
+        shell: /bin/bash
+        create_home: yes
+
+    - name: Set up authorized keys for deployuser
+      authorized_key:
+        user: deployuser
+        state: present
+        key: "{{ ssh_public_key }}"
+
+    - name: Allow deployuser to have passwordless sudo
+      copy:
+        content: "deployuser ALL=(ALL) NOPASSWD: ALL"
+        dest: /etc/sudoers.d/deployuser
+        mode: '0440'
+
+    - name: Disable password authentication for SSH
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PasswordAuthentication'
+        line: 'PasswordAuthentication no'
+
+    - name: Disable root login via SSH
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PermitRootLogin'
+        line: 'PermitRootLogin no'
+
+    - name: Restart SSH
+      service:
+        name: ssh
+        state: restarted
+
   roles:
     - app
     - monitoring
