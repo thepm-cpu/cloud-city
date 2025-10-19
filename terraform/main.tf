@@ -15,8 +15,6 @@ data "aws_ami" "ubuntu" {
 }
 
 # Data source for GitHub Actions IP ranges (for secure SSH access)
-# ... (rest of your main.tf unchanged)
-
 data "http" "github_meta" {
   url = "https://api.github.com/meta"
 }
@@ -25,25 +23,6 @@ locals {
   github_actions_ips = jsondecode(data.http.github_meta.response_body).actions
   github_actions_ipv4 = [for ip in local.github_actions_ips : ip if can(regex("^[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}/[0-9]{1,2}$", ip))]
   github_actions_ipv6 = [for ip in local.github_actions_ips : ip if can(regex("^[0-9a-fA-F:]+/[0-9]{1,3}$", ip))]
-}
-
-# Security Group (custom) - Fences
-resource "aws_security_group" "app_sg" {
-  name        = "cloud-city-sg"
-  description = "Security group for app and monitoring"
-  vpc_id      = module.vpc.vpc_id
-
-  # Inbound rules
-  ingress {
-    description      = "SSH from GitHub Actions and your IP"
-    from_port        = 22
-    to_port          = 22
-    protocol         = "tcp"
-    cidr_blocks      = concat([var.ssh_allowed_ip], local.github_actions_ipv4)
-    ipv6_cidr_blocks = local.github_actions_ipv6  # Add this for IPv6 support
-  }
-
-  # ... (other ingress/egress rules unchanged)
 }
 
 # VPC Module (community) - Handles VPC, subnet, IGW, route table
@@ -74,11 +53,12 @@ resource "aws_security_group" "app_sg" {
 
   # Inbound rules
   ingress {
-    description = "SSH from GitHub Actions and your IP"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = concat([var.ssh_allowed_ip], local.github_actions_ips)
+    description      = "SSH from GitHub Actions and your IP"
+    from_port        = 22
+    to_port          = 22
+    protocol         = "tcp"
+    cidr_blocks      = concat([var.ssh_allowed_ip], local.github_actions_ipv4)
+    ipv6_cidr_blocks = local.github_actions_ipv6
   }
 
   ingress {
