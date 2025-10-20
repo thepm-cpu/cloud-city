@@ -5,7 +5,8 @@
   gather_facts: true
   vars:
     app_repo_url: "https://github.com/thepm-cpu/cloud-city.git"
-    ssh_public_key: ""  
+    ssh_public_key: ""  # Passed from workflow
+    server_ip: "{{ ansible_host }}"  
   
   tasks:
     - name: Wait for connection
@@ -30,13 +31,17 @@
         port: '22'
         proto: tcp
 
-    - name: Configure UFW - Allow HTTP/app ports
+    - name: Configure UFW - Allow HTTP/HTTPS (for Nginx)
+      ufw:
+        rule: allow
+        name: 'Nginx Full' 
+
+    - name: Configure UFW - Allow app/monitoring ports (fallback if direct access needed)
       ufw:
         rule: allow
         port: '{{ item }}'
         proto: tcp
       loop:
-        - '80'
         - '5000'
         - '9090'
         - '9100'
@@ -44,11 +49,36 @@
     - name: Enable UFW
       ufw:
         state: enabled
-        policy: deny  
+        policy: deny  # Deny all except allowed
 
     - name: Enable fail2ban service
       service:
         name: fail2ban
+        state: started
+        enabled: yes
+
+    - name: Install Nginx and OpenSSL (for self-signed cert)
+      apt:
+        name:
+          - nginx
+          - openssl
+        state: present
+
+    - name: Generate self-signed SSL certificate
+      command: openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/selfsigned.key -out /etc/ssl/certs/selfsigned.crt -subj "/C=US/ST=YourState/L=YourCity/O=YourOrg/CN={{ server_ip }}"
+      args:
+        creates: /etc/ssl/certs/selfsigned.crt  
+
+    - name: Configure Nginx as reverse proxy
+      template:
+        src: templates/nginx.conf.j2  
+        dest: /etc/nginx/sites-available/default
+        mode: '0644'
+      notify: Reload Nginx
+
+    - name: Enable and start Nginx
+      service:
+        name: nginx
         state: started
         enabled: yes
 
@@ -87,6 +117,12 @@
       service:
         name: ssh
         state: restarted
+
+  handlers:
+    - name: Reload Nginx
+      service:
+        name: nginx
+        state: reloaded
 
   roles:
     - app
