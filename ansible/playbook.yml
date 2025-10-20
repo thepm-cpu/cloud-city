@@ -12,6 +12,46 @@
       wait_for_connection:
         timeout: 300
 
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install UFW and fail2ban
+      apt:
+        name:
+          - ufw
+          - fail2ban
+        state: present
+
+    - name: Configure UFW - Allow SSH
+      ufw:
+        rule: allow
+        port: '22'
+        proto: tcp
+
+    - name: Configure UFW - Allow HTTP/app ports
+      ufw:
+        rule: allow
+        port: '{{ item }}'
+        proto: tcp
+      loop:
+        - '80'
+        - '5000'
+        - '9090'
+        - '9100'
+
+    - name: Enable UFW
+      ufw:
+        state: enabled
+        policy: deny  
+
+    - name: Enable fail2ban service
+      service:
+        name: fail2ban
+        state: started
+        enabled: yes
+
     - name: Create deploy user
       user:
         name: deployuser

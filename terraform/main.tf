@@ -14,17 +14,6 @@ data "aws_ami" "ubuntu" {
   }
 }
 
-# Data source for GitHub Actions IP ranges (for secure SSH access)
-data "http" "github_meta" {
-  url = "https://api.github.com/meta"
-}
-
-locals {
-  github_actions_ips = jsondecode(data.http.github_meta.response_body).actions
-  github_actions_ipv4 = [for ip in local.github_actions_ips : ip if can(regex("^[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}/[0-9]{1,2}$", ip))]
-  github_actions_ipv6 = [for ip in local.github_actions_ips : ip if can(regex("^[0-9a-fA-F:]+/[0-9]{1,3}$", ip))]
-}
-
 # VPC Module (community) - Handles VPC, subnet, IGW, route table
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
@@ -53,12 +42,11 @@ resource "aws_security_group" "app_sg" {
 
   # Inbound rules
   ingress {
-    description      = "SSH from GitHub Actions and your IP"
-    from_port        = 22
-    to_port          = 22
-    protocol         = "tcp"
-    cidr_blocks      = concat([var.ssh_allowed_ip], local.github_actions_ipv4)
-    ipv6_cidr_blocks = local.github_actions_ipv6
+    description = "SSH from anywhere (open for GitHub Actions; secure with keys/fail2ban)"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   ingress {
